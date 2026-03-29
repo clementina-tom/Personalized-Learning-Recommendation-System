@@ -7,4 +7,4 @@ on:
 
 jobs:
   call-unzip:
-    uses: clementina-tom/my-workflows/.github/workflows/unzip.yml@main
+    uses: clementina-tom/My-workflows/.github/workflows/unzip.yml@main
