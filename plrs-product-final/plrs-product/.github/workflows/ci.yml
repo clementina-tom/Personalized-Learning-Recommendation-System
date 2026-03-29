@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install scikit-learn
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Check imports
+        run: |
+          python -c "from plrs import PLRSPipeline, SAKTModel, DAGConstraintLayer, MultiObjectiveRanker, load_dag"
+          python -c "from plrs.model.sakt_decay import SAKTWithDecay"
+          python -c "from plrs.model.trainer import SAKTTrainer, TrainerConfig"
+          python -c "from plrs.model.evaluator import PLRSEvaluator"
+          python -c "from plrs.api.app import app"
+          echo "✅ All imports clean"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff
+        run: ruff check plrs/ --select E,F,W --ignore E501,W291,W293
