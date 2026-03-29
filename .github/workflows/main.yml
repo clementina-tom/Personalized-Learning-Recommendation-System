@@ -12,6 +12,7 @@ jobs:
   unzip:
     runs-on: ubuntu-latest
     steps:
+      # ... the rest stays the same
       - name: Checkout code
         uses: actions/checkout@v4
 
