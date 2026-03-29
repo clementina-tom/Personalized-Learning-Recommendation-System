@@ -1,4 +1,4 @@
-name: Call Unzip
+name: Auto Unzip
 
 on:
   push:
@@ -6,5 +6,35 @@ on:
       - '*.zip'
 
 jobs:
-  call-unzip:
-    uses: clementina-tom/My-workflows/.github/workflows/unzip.yml@main
+  unzip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Unzip and flatten
+        run: |
+          for zipfile in *.zip; do
+            if [ -f "$zipfile" ]; then
+              temp_dir="${zipfile%.zip}_temp"
+              unzip -qq "$zipfile" -d "$temp_dir"
+              if [ $(ls -1 "$temp_dir" | wc -l) -eq 1 ] && [ -d "$temp_dir/$(ls "$temp_dir")" ]; then
+                inner="$temp_dir/$(ls "$temp_dir")"
+                mv "$inner"/* . 2>/dev/null || true
+                mv "$inner"/.[!.]* . 2>/dev/null || true
+              else
+                mv "$temp_dir"/* . 2>/dev/null || true
+                mv "$temp_dir"/.[!.]* . 2>/dev/null || true
+              fi
+              rm -rf "$temp_dir"
+              rm "$zipfile"
+            fi
+          done
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || git commit -m "Unzip and flatten"
+          git push
