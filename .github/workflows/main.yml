@@ -1,0 +1,20 @@
+name: Unzip Any Zip File
+
+on:
+  push:
+    paths:
+      - '*.zip'
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Find and unzip all zip files
+        run: |
+          for zipfile in *.zip; do
+            unzip -qq "$zipfile" -d "${zipfile%.zip}"
+            rm "$zipfile"
+          done
