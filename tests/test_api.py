@@ -17,9 +17,14 @@ MAPS = ROOT / "data" / "knowledge_maps"
 
 @pytest.fixture(scope="module")
 def client():
+    import sys
     from plrs.api.app import app, register_pipeline
     from plrs.curriculum.loader import load_dag
     from plrs.pipeline import PLRSPipeline
+
+    # Enable dev mode so existing tests pass without API keys
+    app_module = sys.modules["plrs.api.app"]
+    app_module.DEV_MODE = True
 
     for domain, fname in [("math", "math_dag.json"), ("cs", "cs_dag.json")]:
         path = MAPS / fname
