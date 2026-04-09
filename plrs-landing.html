@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLRS — Personalized Learning Recommendation System</title>
+  <meta name="description" content="Constraint-aware personalized learning recommendations. Plug in your curriculum, get intelligent recommendations out." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #080c18;
+      --bg2:      #0d1221;
+      --bg3:      #131a2e;
+      --border:   #1e2a40;
+      --border2:  #1e3a5f;
+      --text:     #c8d0e0;
+      --text-dim: #4a5568;
+      --text-hi:  #e8edf5;
+      --blue:     #3d8bcd;
+      --green:    #22c55e;
+      --amber:    #f59e0b;
+      --red:      #ef4444;
+      --mono:     'DM Mono', monospace;
+      --sans:     'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2.5rem;
+      background: rgba(8, 12, 24, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+    .nav-logo {
+      font-weight: 800; font-size: 1.1rem; color: var(--text-hi);
+      letter-spacing: -0.02em; text-decoration: none;
+    }
+    .nav-logo span { color: var(--blue); }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a {
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em;
+      color: var(--text-dim); text-decoration: none; text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--blue); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.1rem; border-radius: 3px; font-family: var(--mono);
+      font-size: 0.7rem; letter-spacing: 0.08em; text-decoration: none;
+      transition: all 0.2s; cursor: pointer; border: none;
+    }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+    }
+    .btn-primary:hover { background: #4d9bdd; }
+    .btn-outline {
+      background: transparent; color: var(--blue);
+      border: 1px solid var(--border2);
+    }
+    .btn-outline:hover { border-color: var(--blue); background: rgba(61,139,205,0.07); }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 8rem 2.5rem 5rem;
+      max-width: 1100px; margin: 0 auto;
+      position: relative;
+    }
+    .hero-eyebrow {
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em;
+      color: var(--blue); text-transform: uppercase; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .hero-eyebrow::before {
+      content: ''; display: block; width: 2rem; height: 1px; background: var(--blue);
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 800; line-height: 1.05;
+      letter-spacing: -0.03em; color: var(--text-hi);
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 em {
+      font-style: normal; color: var(--blue);
+    }
+    .hero-sub {
+      font-size: 1.1rem; color: var(--text-dim);
+      max-width: 560px; margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-ctas { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 4rem; }
+    .btn-hero {
+      padding: 0.75rem 1.5rem; font-size: 0.8rem;
+    }
+
+    /* ── Stat strip ── */
+    .stat-strip {
+      display: flex; gap: 2.5rem; flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+    }
+    .stat-item {}
+    .stat-num {
+      font-size: 2rem; font-weight: 800; color: var(--text-hi);
+      line-height: 1;
+    }
+    .stat-num span { color: var(--green); }
+    .stat-label {
+      font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em;
+      color: var(--text-dim); text-transform: uppercase; margin-top: 0.2rem;
+    }
+
+    /* ── Grid background decoration ── */
+    .hero-grid {
+      position: absolute; top: 0; right: -5%; bottom: 0; width: 50%;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: linear-gradient(to left, rgba(0,0,0,0.15), transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Section ── */
+    section {
+      max-width: 1100px; margin: 0 auto;
+      padding: 5rem 2.5rem;
+    }
+    .section-label {
+      font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.18em;
+      color: var(--blue); text-transform: uppercase;
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .section-label::before {
+      content: ''; display: block; width: 1.5rem; height: 1px; background: var(--blue);
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      font-weight: 800; letter-spacing: -0.02em; color: var(--text-hi);
+      margin-bottom: 1rem;
+    }
+    .section-body {
+      color: var(--text-dim); font-size: 0.95rem; max-width: 600px;
+      line-height: 1.8; margin-bottom: 2.5rem;
+    }
+
+    /* ── Architecture flow ── */
+    .arch-flow {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 0; margin: 2.5rem 0;
+    }
+    .arch-node {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 0.7rem 1rem;
+      font-family: var(--mono); font-size: 0.72rem; color: var(--text);
+      letter-spacing: 0.04em; position: relative;
+    }
+    .arch-node.highlight { border-color: var(--blue); color: var(--blue); }
+    .arch-arrow {
+      font-family: var(--mono); color: var(--border2); padding: 0 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    /* ── Three-tier cards ── */
+    .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2rem; }
+    .tier-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1.5rem;
+      position: relative; overflow: hidden;
+    }
+    .tier-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--accent);
+    }
+    .tier-card.green { --accent: var(--green); }
+    .tier-card.amber { --accent: var(--amber); }
+    .tier-card.red   { --accent: var(--red); }
+    .tier-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .tier-name {
+      font-weight: 700; font-size: 1rem; color: var(--text-hi);
+      margin-bottom: 0.35rem;
+    }
+    .tier-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── Results table ── */
+    .results-table {
+      width: 100%; border-collapse: collapse;
+      font-family: var(--mono); font-size: 0.78rem;
+      margin-top: 2rem;
+    }
+    .results-table th {
+      text-align: left; padding: 0.6rem 1rem;
+      color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase;
+      font-size: 0.65rem; border-bottom: 1px solid var(--border);
+    }
+    .results-table td {
+      padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr.highlight-row td { color: var(--text-hi); }
+    .badge-green {
+      background: rgba(34,197,94,0.1); color: var(--green);
+      border: 1px solid rgba(34,197,94,0.3);
+      padding: 1px 7px; border-radius: 2px; font-size: 0.65rem;
+    }
+    .badge-red {
+      background: rgba(239,68,68,0.1); color: var(--red);
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 1px 7px; border-radius: 2px; font-size: 0.65rem;
+    }
+
+    /* ── Code block ── */
+    .code-wrap {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 4px; overflow: hidden; margin-top: 2rem;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
+      background: var(--bg3);
+    }
+    .code-dots { display: flex; gap: 5px; }
+    .code-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--border2);
+    }
+    .code-lang {
+      font-family: var(--mono); font-size: 0.62rem;
+      color: var(--text-dim); letter-spacing: 0.1em;
+    }
+    pre {
+      padding: 1.5rem;
+      font-family: var(--mono); font-size: 0.78rem;
+      line-height: 1.7; color: var(--text);
+      overflow-x: auto;
+    }
+    .cm { color: #4a5568; }         /* comment */
+    .ck { color: #3d8bcd; }         /* keyword */
+    .cs { color: #22c55e; }         /* string */
+    .cn { color: #f59e0b; }         /* number / name */
+    .cf { color: #c084fc; }         /* function */
+
+    /* ── Feature grid ── */
+    .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); margin-top: 2rem; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+    .feature-cell {
+      background: var(--bg); padding: 1.5rem;
+    }
+    .feature-icon { font-size: 1.2rem; margin-bottom: 0.75rem; }
+    .feature-title { font-weight: 700; color: var(--text-hi); margin-bottom: 0.35rem; font-size: 0.9rem; }
+    .feature-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── CTA section ── */
+    .cta-section {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 5rem 2.5rem;
+      text-align: center;
+    }
+    .cta-inner { max-width: 600px; margin: 0 auto; }
+    .cta-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-hi); margin-bottom: 1rem; }
+    .cta-sub { color: var(--text-dim); margin-bottom: 2rem; line-height: 1.7; }
+    .cta-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 2.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 1rem;
+      max-width: 100%;
+    }
+    .footer-left { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); text-decoration: none; }
+    .footer-links a:hover { color: var(--blue); }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-eyebrow { animation: fadeUp 0.5s ease 0.1s both; }
+    .hero h1      { animation: fadeUp 0.5s ease 0.2s both; }
+    .hero-sub     { animation: fadeUp 0.5s ease 0.3s both; }
+    .hero-ctas    { animation: fadeUp 0.5s ease 0.4s both; }
+    .stat-strip   { animation: fadeUp 0.5s ease 0.5s both; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      nav { padding: 0.75rem 1.25rem; }
+      .nav-links .btn { display: none; }
+      .hero { padding: 7rem 1.25rem 4rem; }
+      .tier-grid { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: 1fr; }
+      section { padding: 3rem 1.25rem; }
+      .arch-flow { gap: 0.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <a href="#" class="nav-logo">PL<span>RS</span></a>
+  <div class="nav-links">
+    <a href="#how-it-works">How it works</a>
+    <a href="#results">Results</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="https://github.com/clementina-tom/plrs" target="_blank">GitHub</a>
+    <a href="https://huggingface.co/spaces/Clementio/PLRS" class="btn btn-primary btn-hero" target="_blank">Live Demo →</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-grid"></div>
+
+  <div class="hero-eyebrow">Knowledge Tracing · Constraint-Aware · Open Source</div>
+
+  <h1>Recommendations that<br/><em>respect</em> how learning works.</h1>
+
+  <p class="hero-sub">
+    PLRS combines Self-Attentive Knowledge Tracing with a DAG prerequisite constraint layer
+    to generate personalized learning recommendations that are pedagogically sound —
+    not just statistically optimal.
+  </p>
+
+  <div class="hero-ctas">
+    <a href="https://huggingface.co/spaces/Clementio/PLRS" target="_blank" class="btn btn-primary btn-hero">
+      Try the live demo
+    </a>
+    <a href="https://github.com/clementina-tom/plrs" target="_blank" class="btn btn-outline btn-hero">
+      View on GitHub
+    </a>
+    <a href="#quickstart" class="btn btn-outline btn-hero">
+      Quickstart
+    </a>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-item">
+      <div class="stat-num"><span>0.0</span>%</div>
+      <div class="stat-label">Prerequisite violation rate</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0.7692</div>
+      <div class="stat-label">SAKT Val AUC (OULAD)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">69</div>
+      <div class="stat-label">Curriculum topics (2 domains)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">52</div>
+      <div class="stat-label">Tests passing</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── How it works ── -->
+<section id="how-it-works">
+  <div class="section-label">Architecture</div>
+  <h2 class="section-title">Three layers. One guarantee.</h2>
+  <p class="section-body">
+    Standard recommendation systems optimise for engagement or accuracy —
+    they will happily recommend Calculus to a student who hasn't mastered Algebra.
+    PLRS adds a constraint layer that makes this <em>structurally impossible</em>.
+  </p>
+
+  <div class="arch-flow">
+    <div class="arch-node">Student History</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node highlight">SAKT Model</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">Mastery Vector</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node highlight">DAG Constraints</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">Multi-Objective Ranker</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node highlight">Recommendations</div>
+  </div>
+
+  <div class="tier-grid">
+    <div class="tier-card green">
+      <div class="tier-icon">✅</div>
+      <div class="tier-name">Approved</div>
+      <div class="tier-desc">All prerequisites met above the mastery threshold. Student is ready to learn this topic now.</div>
+    </div>
+    <div class="tier-card amber">
+      <div class="tier-icon">⚠️</div>
+      <div class="tier-name">Challenging</div>
+      <div class="tier-desc">Prerequisites partially met — above the soft threshold but below full mastery. Proceed with awareness.</div>
+    </div>
+    <div class="tier-card red">
+      <div class="tier-icon">❌</div>
+      <div class="tier-name">Vetoed</div>
+      <div class="tier-desc">One or more prerequisites not met. Structurally blocked until foundations are solid.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Results ── -->
+<section id="results" style="border-top: 1px solid var(--border);">
+  <div class="section-label">Evaluation</div>
+  <h2 class="section-title">0% violation rate. Not a tuning choice.</h2>
+  <p class="section-body">
+    Evaluated on the Open University Learning Analytics Dataset (OULAD) with
+    Nigerian secondary school curriculum knowledge maps. The 0% violation rate
+    is a structural guarantee from the DAG constraint layer — not a hyperparameter.
+  </p>
+
+  <table class="results-table">
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Val AUC</th>
+        <th>Prerequisite Violation Rate</th>
+        <th>Coverage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight-row">
+        <td><strong>PLRS (SAKT + DAG)</strong></td>
+        <td><strong>0.7692</strong></td>
+        <td><span class="badge-green">0.0%</span></td>
+        <td>Full curriculum</td>
+      </tr>
+      <tr>
+        <td>Collaborative Filtering</td>
+        <td>—</td>
+        <td><span class="badge-red">81.3%</span></td>
+        <td>Partial</td>
+      </tr>
+      <tr>
+        <td>Matrix Factorization</td>
+        <td>—</td>
+        <td><span class="badge-red">83.7%</span></td>
+        <td>Partial</td>
+      </tr>
+      <tr>
+        <td>BKT (baseline)</td>
+        <td>~0.67</td>
+        <td><span class="badge-red">No constraint layer</span></td>
+        <td>Partial</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── Quickstart ── -->
+<section id="quickstart" style="border-top: 1px solid var(--border);">
+  <div class="section-label">Quickstart</div>
+  <h2 class="section-title">Plug in your curriculum.</h2>
+  <p class="section-body">
+    PLRS is curriculum-agnostic. Define your knowledge graph in a simple JSON format
+    and get recommendations immediately. No retraining required for new domains.
+  </p>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-lang">PYTHON</div>
+    </div>
+    <pre><span class="ck">from</span> plrs <span class="ck">import</span> PLRSPipeline
+<span class="ck">from</span> plrs.curriculum <span class="ck">import</span> load_dag
+
+<span class="cm"># Load your curriculum (JSON knowledge graph)</span>
+curriculum = <span class="cf">load_dag</span>(<span class="cs">"math_dag.json"</span>)
+
+<span class="cm"># Create pipeline — no model needed for mastery-dict mode</span>
+pipeline = <span class="cf">PLRSPipeline</span>(curriculum)
+
+<span class="cm"># Get recommendations from student mastery scores</span>
+results = pipeline.<span class="cf">recommend_from_mastery</span>({
+    <span class="cs">"whole_numbers"</span>:         <span class="cn">0.90</span>,
+    <span class="cs">"algebraic_expressions"</span>: <span class="cn">0.75</span>,
+    <span class="cs">"quadratic_equations"</span>:   <span class="cn">0.40</span>,
+})
+
+<span class="ck">for</span> rec <span class="ck">in</span> results[<span class="cs">"approved"</span>]:
+    <span class="cf">print</span>(<span class="cs">f"✅ {rec['topic_label']} (score={rec['score']})"</span>)
+    <span class="cf">print</span>(<span class="cs">f"   {rec['reasoning']}"</span>)
+
+<span class="cm"># What-if: what does mastering this topic unlock?</span>
+wi = pipeline.<span class="cf">what_if</span>(<span class="cs">"algebraic_expressions"</span>)
+<span class="cf">print</span>(<span class="cs">f"Unlocks {wi['total_unlocked']} downstream topics"</span>)</pre>
+  </div>
+
+  <div class="code-wrap" style="margin-top: 1rem;">
+    <div class="code-header">
+      <div class="code-dots"><span></span><span></span><span></span></div>
+      <div class="code-lang">REST API</div>
+    </div>
+    <pre><span class="cm"># Start the server</span>
+$ python scripts/serve.py
+<span class="cm"># → http://127.0.0.1:8000/docs</span>
+
+<span class="cm"># Get recommendations</span>
+$ curl -X POST http://localhost:<span class="cn">8000</span>/recommend \
+    -H <span class="cs">"Content-Type: application/json"</span> \
+    -d <span class="cs">'{"domain":"math","mastery_scores":{"whole_numbers":0.9}}'</span></pre>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section style="border-top: 1px solid var(--border);">
+  <div class="section-label">Features</div>
+  <h2 class="section-title">Built for real deployment.</h2>
+
+  <div class="feature-grid">
+    <div class="feature-cell">
+      <div class="feature-icon">🔌</div>
+      <div class="feature-title">Curriculum-agnostic</div>
+      <div class="feature-desc">Define any knowledge graph in a simple JSON format. Ships with Nigerian secondary school Maths and CS Fundamentals (NERDC JSS3–SS2).</div>
+    </div>
+    <div class="feature-cell">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">FastAPI REST backend</div>
+      <div class="feature-desc">Production-ready API with <code>/recommend</code>, <code>/what-if</code>, and <code>/curriculum</code> endpoints. Auto-generated OpenAPI docs.</div>
+    </div>
+    <div class="feature-cell">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-title">SAKT + Forgetting Curve</div>
+      <div class="feature-desc">Self-Attentive Knowledge Tracing with optional Ebbinghaus decay attention — older interactions contribute less to current mastery estimates.</div>
+    </div>
+    <div class="feature-cell">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">What-If Simulator</div>
+      <div class="feature-desc">"If I master Trigonometry now, what unlocks?" — live DAG traversal shows direct and transitive downstream topics.</div>
+    </div>
+    <div class="feature-cell">
+      <div class="feature-icon">📦</div>
+      <div class="feature-title">PyPI-ready package</div>
+      <div class="feature-desc"><code>pip install plrs</code> — modular architecture with clean public API. Full type annotations throughout.</div>
+    </div>
+    <div class="feature-cell">
+      <div class="feature-icon">🧪</div>
+      <div class="feature-title">52 tests, CI on 3 Python versions</div>
+      <div class="feature-desc">Unit tests, API integration tests, and evaluator tests. GitHub Actions runs on Python 3.10, 3.11, and 3.12.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-title">Try it now — no setup required.</div>
+    <p class="cta-sub">
+      The live demo runs the full pipeline in your browser.
+      Adjust mastery sliders, simulate student sequences, explore the curriculum graph.
+    </p>
+    <div class="cta-btns">
+      <a href="https://huggingface.co/spaces/Clementio/PLRS" target="_blank" class="btn btn-primary btn-hero">
+        Open live demo →
+      </a>
+      <a href="https://github.com/clementina-tom/plrs" target="_blank" class="btn btn-outline btn-hero">
+        Star on GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ── */
+<footer>
+  <div class="footer-left">
+    PLRS — Personalized Learning Recommendation System<br/>
+    MIT License · Built by <a href="https://github.com/clementina-tom" style="color:var(--blue);text-decoration:none;">Clementina Tom</a>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/clementina-tom/plrs" target="_blank">GitHub</a>
+    <a href="https://huggingface.co/spaces/Clementio/PLRS" target="_blank">HuggingFace</a>
+    <a href="https://huggingface.co/spaces/Clementio/PLRS" target="_blank">Live Demo</a>
+  </div>
+</footer>
+
+</body>
+</html>
