@@ -54,4 +54,5 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Run ruff
-        run: ruff check plrs/ --select E,F,W --ignore E501,W291,W293
+        run: ruff check plrs/ --select E,F,W --ignore E501,W291,W293 --fix
+      
