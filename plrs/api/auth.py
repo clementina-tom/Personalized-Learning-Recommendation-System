@@ -170,7 +170,7 @@ class KeyStore:
         """
         api_key = self._keys.get(raw_key)
         if api_key is None:
-            raise KeyError(f"API key not found.")
+            raise KeyError("API key not found.")
         if not api_key.is_active:
             raise ValueError(f"API key '{api_key.name}' is inactive.")
         return api_key

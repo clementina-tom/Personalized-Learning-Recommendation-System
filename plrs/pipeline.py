@@ -166,7 +166,6 @@ class PLRSPipeline:
         -------
         dict with direct_unlocks, all_unlocks, blocked_by, total_unlocked
         """
-        graph = self.curriculum.graph
         direct = self.curriculum.successors(topic_id)
         all_unlocks = self.curriculum.descendants(topic_id)
         blocked_by = self.curriculum.prerequisites(topic_id)
