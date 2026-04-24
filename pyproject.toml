@@ -4,19 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plrs"
-version = "0.1.0"
+version = "0.4.0"
 description = "Constraint-aware personalized learning recommendations. Plug in your curriculum, get intelligent recommendations out."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Clementina Tom", email = "clementina@example.com" }]
 keywords = ["education", "knowledge-tracing", "recommendation-system", "machine-learning", "edtech"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Education",
 ]
@@ -32,21 +33,40 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# LLM provider extras
+claude      = ["anthropic>=0.25"]
+openai      = ["openai>=1.0"]
+ollama      = ["ollama>=0.2"]
+huggingface = ["huggingface_hub>=0.22"]
+llm         = ["anthropic>=0.25", "openai>=1.0", "ollama>=0.2", "huggingface_hub>=0.22"]
+
+# Infrastructure
+postgres = ["sqlalchemy>=2.0", "psycopg2-binary>=2.9"]
+redis    = ["redis>=5.0"]
+docker   = ["sqlalchemy>=2.0", "psycopg2-binary>=2.9", "redis>=5.0"]
+
+# Demo
 demo = ["streamlit>=1.33"]
-dev  = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.4"]
+
+# Development
+dev = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.4", "scikit-learn>=1.3", "fakeredis>=2.0"]
+
+# Everything
+all = [
+    "anthropic>=0.25", "openai>=1.0", "ollama>=0.2", "huggingface_hub>=0.22",
+    "sqlalchemy>=2.0", "psycopg2-binary>=2.9", "redis>=5.0", "streamlit>=1.33",
+]
 
 [project.urls]
-Homepage    = "https://github.com/clementina-tom/plrs"
-Repository  = "https://github.com/clementina-tom/plrs"
+Homepage      = "https://github.com/clementina-tom/plrs"
+Repository    = "https://github.com/clementina-tom/plrs"
 "Bug Tracker" = "https://github.com/clementina-tom/plrs/issues"
-
-[project.scripts]
-plrs = "plrs.cli:main"
+Demo          = "https://huggingface.co/spaces/Clementio/PLRS"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where   = ["."]
 include = ["plrs*"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py310"
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-q"

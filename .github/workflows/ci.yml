@@ -24,23 +24,45 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install dependencies
+      - name: Install core dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-          pip install scikit-learn
+          pip install scikit-learn fakeredis sqlalchemy
 
-      - name: Run tests
-        run: pytest tests/ -v --tb=short
-
-      - name: Check imports
+      - name: Check all module imports
         run: |
-          python -c "from plrs import PLRSPipeline, SAKTModel, DAGConstraintLayer, MultiObjectiveRanker, load_dag"
+          # Core
+          python -c "from plrs.pipeline import PLRSPipeline"
+          python -c "from plrs.curriculum.loader import load_dag, CurriculumGraph"
+          python -c "from plrs.constraints.dag import DAGConstraintLayer, MasteryVector"
+          python -c "from plrs.ranking.ranker import MultiObjectiveRanker"
+          python -c "from plrs.ranking.spaced_repetition import SpacedRepetitionScorer"
+          python -c "from plrs.model.sakt import SAKTModel"
           python -c "from plrs.model.sakt_decay import SAKTWithDecay"
           python -c "from plrs.model.trainer import SAKTTrainer, TrainerConfig"
           python -c "from plrs.model.evaluator import PLRSEvaluator"
-          python -c "from plrs.api.app import app"
+          python -c "from plrs.model.online import OnlineLearner"
+          # LLM layer
+          python -c "from plrs.llm.base import LLMProvider, MockProvider, resolve_provider"
+          python -c "from plrs.llm.providers.claude import ClaudeProvider"
+          python -c "from plrs.llm.providers.openai import OpenAIProvider"
+          python -c "from plrs.llm.providers.ollama import OllamaProvider"
+          python -c "from plrs.llm.providers.huggingface import HuggingFaceProvider"
+          python -c "from plrs.curriculum.llm_builder import CurriculumBuilder"
+          python -c "from plrs.explain import Explainer, ExplanationResult"
+          # API
+          python -c "from plrs.api.app import app, register_pipeline"
+          python -c "from plrs.api.llm_router import llm_router, register_default_llm_provider"
+          python -c "from plrs.api.db import PostgresKeyStore, get_db_key_store"
+          python -c "from plrs.api.redis_rate_limit import RedisRateLimiter, get_rate_limiter"
+          # Assessment
+          python -c "from plrs.assess.diagnostic import DiagnosticEngine, register_engine"
+          python -c "from plrs.assess.router import assess_router"
           echo "✅ All imports clean"
+
+      - name: Run test suite
+        run: pytest tests/ -v --tb=short
 
   lint:
     name: Lint
@@ -53,6 +75,17 @@ jobs:
           cache: pip
       - name: Install ruff
         run: pip install ruff
-      - name: Run ruff
-        run: ruff check plrs/ --select E,F,W --ignore E501,W291,W293 --fix
-      
+      - name: Lint
+        run: ruff check plrs/ --ignore E501,W291,W293
+
+  docker-build:
+    name: Docker build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t plrs-api:ci --target runtime .
+      - name: Verify image starts
+        run: |
+          docker run --rm -e PLRS_DEV_MODE=1 plrs-api:ci \
+            python -c "from plrs.api.app import app; print('✅ Docker image OK')"

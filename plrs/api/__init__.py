@@ -1,3 +1,1 @@
-from plrs.api.app import app, register_pipeline
-
-__all__ = ["app", "register_pipeline"]
+"""plrs.api — FastAPI application and supporting modules."""

@@ -1,0 +1,48 @@
+version: "3.9"
+
+# ── PLRS Development Overrides ────────────────────────────────────────────────
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Changes from production:
+#   - Hot reload enabled (mounts source code)
+#   - Single worker (easier debugging)
+#   - DEV_MODE=1 (no API key required)
+#   - Postgres and Redis ports exposed to host
+#   - Simpler passwords for local dev
+
+services:
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"    # exposed to host in dev
+
+  redis:
+    command: redis-server --loglevel verbose
+    ports:
+      - "6379:6379"    # exposed to host in dev
+
+  api:
+    build:
+      target: builder   # use builder stage for faster rebuilds
+    environment:
+      PLRS_DB_URL:    postgresql://plrs:devpassword@postgres:5432/plrs
+      PLRS_REDIS_URL: redis://redis:6379/0
+      PLRS_DEV_MODE:  "1"    # bypass auth for dev
+      WORKERS:        "1"
+    volumes:
+      - ./plrs:/app/plrs     # mount source for hot reload
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+    command: >
+      sh -c "python scripts/docker_init.py --skip-redis &&
+             uvicorn plrs.api.app:app
+             --host 0.0.0.0
+             --port 8000
+             --reload
+             --log-level debug"
+    ports:
+      - "8000:8000"

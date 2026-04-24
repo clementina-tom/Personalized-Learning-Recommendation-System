@@ -1,0 +1,124 @@
+version: "3.9"
+
+# ── PLRS Production Stack ─────────────────────────────────────────────────────
+#
+# Services:
+#   api      — FastAPI application (uvicorn, 2 workers)
+#   postgres — PostgreSQL 16 (API key persistence)
+#   redis    — Redis 7 (rate limiting, caching)
+#
+# Quick start:
+#   cp .env.example .env        # fill in your values
+#   docker compose up -d        # start everything
+#   docker compose logs -f api  # watch logs
+#
+# First run: the api container runs docker_init.py which creates tables
+# and prints the admin API key to stdout. Grab it from:
+#   docker compose logs api | grep "plrs_"
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-plrs}
+      POSTGRES_USER:     ${POSTGRES_USER:-plrs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"    # bound to localhost only — not exposed externally
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-plrs} -d ${POSTGRES_DB:-plrs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plrs-internal
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-}
+      --loglevel warning
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"    # localhost only
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plrs-internal
+
+  # ── API ─────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      PLRS_DB_URL: postgresql://${POSTGRES_USER:-plrs}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-plrs}
+
+      # Redis (append password if set)
+      PLRS_REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+
+      # LLM providers (set whichever you use)
+      ANTHROPIC_API_KEY:  ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY:     ${OPENAI_API_KEY:-}
+      HF_TOKEN:           ${HF_TOKEN:-}
+      OLLAMA_HOST:        ${OLLAMA_HOST:-}
+
+      # App config
+      PLRS_DEV_MODE:      ${PLRS_DEV_MODE:-0}
+      PLRS_KEYS_PATH:     ""           # use Postgres, not file
+
+      # Uvicorn
+      WORKERS:            ${WORKERS:-2}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - plrs-internal
+      - plrs-external
+    command: >
+      sh -c "python scripts/docker_init.py &&
+             uvicorn plrs.api.app:app
+             --host 0.0.0.0
+             --port 8000
+             --workers ${WORKERS:-2}
+             --log-level info"
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  plrs-internal:   # postgres + redis — not externally accessible
+    internal: true
+  plrs-external:   # api — externally accessible
