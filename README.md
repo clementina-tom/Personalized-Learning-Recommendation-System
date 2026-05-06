@@ -5,7 +5,6 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen.svg)]()
 [![Val AUC](https://img.shields.io/badge/Val%20AUC-0.8613-blue.svg)]()
 
 PLRS combines **Self-Attentive Knowledge Tracing with Ebbinghaus Forgetting Curve Decay (SAKTWithDecay)** with a **DAG-based prerequisite constraint layer** to generate recommendations that are both personalized *and* pedagogically sound.
@@ -60,8 +59,10 @@ Student History → SAKTWithDecay → Mastery Vector
 
 ## Quick start
 
+> **Note:** PyPI package coming soon. For now, install directly from GitHub:
+
 ```bash
-pip install plrs
+pip install git+https://github.com/clementina-tom/Personalized-Learning-Recommendation-System.git
 ```
 
 ```python
